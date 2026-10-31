@@ -76,11 +76,37 @@ def test_messages(client):
 
 def test_delete_message(client):
     """Ensure the messages are being deleted"""
-    rv = client.get('/delete/1')
+    rv = client.get("/delete/1")
+    data = json.loads(rv.data)
+    assert data["status"] == 0
+    login(client, app.config["USERNAME"], app.config["PASSWORD"])
+    rv = client.get("/delete/1")
     data = json.loads(rv.data)
     assert data["status"] == 1
 
-def test_search(client):
-    """Ensure the search functionality works"""
-    rv = client.get('/search/')
-    assert rv.status_code == 200
+def test_search_page(client):
+    """Ensure the search page is accessible"""
+    response = client.get("/search/", follow_redirects=True)
+    assert response.status_code == 200
+
+def test_empty_search(client):
+    """Ensure that the search page is accessible with an empty query"""
+    response = client.get("/search/", query_string={"q": ""}, follow_redirects=True)
+    assert response.status_code == 200
+
+def test_search_no_results(client):
+    """Ensure that the search page is accessible with a query that returns no results"""
+    response = client.get("/search/", query_string={"q": "xyznonexistent123"}, follow_redirects=True)
+    assert response.status_code == 200
+
+def test_invalid_login(client):
+    response = client.post(
+        "/login",
+        data={
+            "username": "wrong",
+            "password": "wrong"
+        },
+        follow_redirects=True
+    )
+    assert response.status_code == 200
+    assert b"Invalid" in response.data
